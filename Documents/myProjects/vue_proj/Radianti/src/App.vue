@@ -1,7 +1,9 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { RouterView } from "vue-router";
+
+console.log("test");
 </script>
 
 <template>
-  <RouterView />
+    <RouterView />
 </template>
