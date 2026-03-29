@@ -28,118 +28,26 @@ const requestStatesStorageKey = "requestStates";
 const requestPriority = ref({});
 const requestPriorityStorageKey = "requestPriority";
 const expandedContactId = ref(null);
-const notionSyncStatus = ref("No notion sync yet");
+const notionSyncStatus = ref("");
 const sortOption = ref("deadlineAsc");
 
-const toDisplayName = (key) => {
-    return key.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
-};
+const toDisplayName = (key) =>
+    key.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 
 const categoryTags = {
-    investory: [
-        "Venture Capital",
-        "Angel Investor",
-        "Seed",
-        "Series A",
-        "Private Equity",
-        "Exit Strategy",
-    ],
-    government: [
-        "Grants",
-        "Public Policy",
-        "Smart City",
-        "e-Government",
-        "EU Funding",
-        "Regulatory Compliance",
-    ],
-    startup: [
-        "SaaS",
-        "FinTech",
-        "Scalability",
-        "MVP",
-        "Bootstrapping",
-        "Product Market Fit",
-        "Pitch Deck",
-    ],
-    talent_recruiting: [
-        "Headhunting",
-        "Employer Branding",
-        "HR Tech",
-        "Upskilling",
-        "Remote Work",
-        "Soft Skills",
-    ],
-    non_profit: [
-        "Fundraising",
-        "Social Impact",
-        "Community Building",
-        "Volunteerism",
-        "Charity",
-        "NGO",
-    ],
-    media: [
-        "Journalism",
-        "Content Strategy",
-        "Broadcasting",
-        "Digital Media",
-        "Copywriting",
-        "Press Release",
-    ],
-    operators: [
-        "Logistics",
-        "Supply Chain",
-        "Infrastructure",
-        "Telecommunications",
-        "Operations Management",
-    ],
-    service_providers: [
-        "Consulting",
-        "Legal Services",
-        "Accounting",
-        "Cloud Services",
-        "B2B",
-        "Outsourcing",
-    ],
-    mentors: [
-        "Business Coaching",
-        "Leadership",
-        "Industry Expert",
-        "Technical Mentorship",
-        "Career Growth",
-        "Startup Advisory",
-    ],
-    investment_deal: [
-        "Due Diligence",
-        "Equity",
-        "Valuation",
-        "Convertible Notes",
-        "Cap Table",
-        "Term Sheet",
-    ],
-    pr_marketing: [
-        "Brand Awareness",
-        "Crisis Management",
-        "Public Relations",
-        "Social Media",
-        "Influencer Marketing",
-        "Reputation Management",
-    ],
-    mna: [
-        "Mergers",
-        "Acquisitions",
-        "Integration",
-        "Consolidation",
-        "Corporate Development",
-        "Buyout Strategies",
-    ],
-    networking: [
-        "B2B Networking",
-        "Events",
-        "Partnerships",
-        "Ecosystems",
-        "Business Matchmaking",
-        "Referrals",
-    ],
+    investory: ["Venture Capital","Angel Investor","Seed","Series A","Private Equity","Exit Strategy"],
+    government: ["Grants","Public Policy","Smart City","e-Government","EU Funding","Regulatory Compliance"],
+    startup: ["SaaS","FinTech","Scalability","MVP","Bootstrapping","Product Market Fit","Pitch Deck"],
+    talent_recruiting: ["Headhunting","Employer Branding","HR Tech","Upskilling","Remote Work","Soft Skills"],
+    non_profit: ["Fundraising","Social Impact","Community Building","Volunteerism","Charity","NGO"],
+    media: ["Journalism","Content Strategy","Broadcasting","Digital Media","Copywriting","Press Release"],
+    operators: ["Logistics","Supply Chain","Infrastructure","Telecommunications","Operations Management"],
+    service_providers: ["Consulting","Legal Services","Accounting","Cloud Services","B2B","Outsourcing"],
+    mentors: ["Business Coaching","Leadership","Industry Expert","Technical Mentorship","Career Growth","Startup Advisory"],
+    investment_deal: ["Due Diligence","Equity","Valuation","Convertible Notes","Cap Table","Term Sheet"],
+    pr_marketing: ["Brand Awareness","Crisis Management","Public Relations","Social Media","Influencer Marketing","Reputation Management"],
+    mna: ["Mergers","Acquisitions","Integration","Consolidation","Corporate Development","Buyout Strategies"],
+    networking: ["B2B Networking","Events","Partnerships","Ecosystems","Business Matchmaking","Referrals"],
 };
 
 const teamCategoryMap = {
@@ -150,54 +58,23 @@ const teamCategoryMap = {
     "Social Impact Team": ["non_profit", "media"],
 };
 
-const categoryToTeam = Object.entries(teamCategoryMap).reduce(
-    (acc, [team, categories]) => {
-        categories.forEach((category) => {
-            acc[category] = team;
-        });
-        return acc;
-    },
-    {},
-);
+const categoryToTeam = Object.entries(teamCategoryMap).reduce((acc, [team, cats]) => {
+    cats.forEach((c) => { acc[c] = team; });
+    return acc;
+}, {});
 
-const NOTION_PROXY_ENDPOINT = "http://localhost:3001/api/notion-pages"; // backend server must be running (npm run server)
-
-// Optional: mapping for text labels, for readability in generated block.
-const notionFieldLabels = {
-    company_name: "Company",
-    first_name: "First Name",
-    last_name: "Last Name",
-    email: "Email",
-    phone: "Phone",
-    location: "Location",
-    deadline_time: "Deadline",
-    user_premium: "Premium",
-    business_or_person: "Type",
-    category: "Category",
-    tags: "Tags",
-    request_state: "Request State",
-    assigned_team: "Assigned Team",
-    comments: "Notes",
-};
+const NOTION_PROXY_ENDPOINT = "http://localhost:3001/api/notion-pages";
 
 function getAssignedTeam(contact) {
-    const categoryKey =
-        contact && contact.category
-            ? contact.category.toString().replace(/\s+/g, "_").toLowerCase()
-            : "";
-    return categoryToTeam[categoryKey] || "Unassigned Team";
+    const key = contact?.category?.toString().replace(/\s+/g, "_").toLowerCase() || "";
+    return categoryToTeam[key] || "Unassigned Team";
 }
 
 function buildNotionCardBlocks(contact) {
-    const commentsText =
-        (comments.value[contact.id] ?? []).join("\n") || "No comments";
+    const commentsText = (comments.value[contact.id] ?? []).join("\n") || "No comments";
     const fieldItems = [
         ["Company", contact.company_name || "N/A"],
-        [
-            "Name",
-            `${contact.first_name || ""} ${contact.last_name || ""}`.trim() ||
-                "N/A",
-        ],
+        ["Name", `${contact.first_name || ""} ${contact.last_name || ""}`.trim() || "N/A"],
         ["Email", contact.email || "N/A"],
         ["Phone", contact.phone || "N/A"],
         ["Location", contact.location || "N/A"],
@@ -211,409 +88,182 @@ function buildNotionCardBlocks(contact) {
         ["Tags", (contact.tags || []).join(", ") || "N/A"],
         ["Notes", commentsText],
     ];
-
-    const textLines = fieldItems.map(([label, value]) => `${label}: ${value}`);
-
-    return [
-        {
-            object: "block",
-            type: "callout",
-            callout: {
-                rich_text: [
-                    { type: "text", text: { content: textLines.join("\n") } },
-                ],
-                icon: { type: "emoji", emoji: "📌" },
-            },
+    return [{
+        object: "block", type: "callout",
+        callout: {
+            rich_text: [{ type: "text", text: { content: fieldItems.map(([l, v]) => `${l}: ${v}`).join("\n") } }],
+            icon: { type: "emoji", emoji: "📌" },
         },
-    ];
+    }];
 }
 
 async function sendContactToNotion(contact) {
-    const title =
-        contact.company_name ||
-        `${contact.first_name || "Unknown"} ${contact.last_name || ""}`.trim() ||
-        "Untitled request";
-    const children = buildNotionCardBlocks(contact);
-
-    const payload = {
-        title,
-        children,
-    };
-
+    const title = contact.company_name || `${contact.first_name || "Unknown"} ${contact.last_name || ""}`.trim() || "Untitled";
     try {
         const resp = await fetch(NOTION_PROXY_ENDPOINT, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, children: buildNotionCardBlocks(contact) }),
         });
-
-        if (!resp.ok) {
-            const errorData = await resp.json().catch(() => ({}));
-            console.error("Notion proxy error", errorData);
-            return { success: false, errorInfo: errorData };
-        }
-
+        if (!resp.ok) return { success: false, errorInfo: await resp.json().catch(() => ({})) };
         return { success: true, data: await resp.json() };
     } catch (error) {
-        console.error("Notion proxy request failed", error);
         return { success: false, error };
     }
 }
 
 async function sendAllContactsToNotion() {
-    notionSyncStatus.value = "Syncing contacts to Notion...";
-    const contactsToSend = sortedContacts.value.filter(
-        (c) => !deletedRequests.value[c.id],
-    );
+    notionSyncStatus.value = "Syncing…";
+    const toSend = sortedContacts.value.filter((c) => !deletedRequests.value[c.id]);
     const results = [];
-
-    for (const contact of contactsToSend) {
+    for (const contact of toSend) {
         const result = await sendContactToNotion(contact);
-        results.push({
-            id: contact.id,
-            success: result.success,
-            error: result.error || result.errorInfo,
-        });
+        results.push({ id: contact.id, success: result.success });
     }
-
-    const successCount = results.filter((r) => r.success).length;
-    const failedCount = results.length - successCount;
-    notionSyncStatus.value = `Notion sync complete: ${successCount} success, ${failedCount} failed.`;
-
-    if (failedCount > 0) {
-        console.warn(
-            "Some items failed to sync:",
-            results.filter((r) => !r.success),
-        );
-    }
-    return results;
+    const ok = results.filter((r) => r.success).length;
+    notionSyncStatus.value = `Sync complete — ${ok} sent, ${results.length - ok} failed.`;
 }
 
-const categoryOptions = computed(() => {
-    return Object.keys(categoryTags).map((key) => ({
-        value: key,
-        label: toDisplayName(key),
-    }));
-});
+const categoryOptions = computed(() =>
+    Object.keys(categoryTags).map((key) => ({ value: key, label: toDisplayName(key) }))
+);
 
-const availableTags = computed(() => {
-    return selectedCategory.value && categoryTags[selectedCategory.value]
+const availableTags = computed(() =>
+    selectedCategory.value && categoryTags[selectedCategory.value]
         ? categoryTags[selectedCategory.value]
-        : [];
-});
+        : []
+);
 
 const filteredContacts = computed(() => {
     const text = textSearch.value.trim().toLowerCase();
-
     return contacts.value.filter((contact) => {
-        if (deletedRequests.value[contact.id]) {
-            return false;
-        }
+        if (deletedRequests.value[contact.id]) return false;
         const categoryMatch = selectedCategory.value
-            ? contact.category &&
-              contact.category.toString().toLowerCase() ===
-                  selectedCategory.value
+            ? contact.category?.toString().toLowerCase() === selectedCategory.value
             : true;
-
         const tagMatch = selectedTag.value
-            ? (contact.tags || []).some(
-                  (t) => t.toLowerCase() === selectedTag.value.toLowerCase(),
-              )
+            ? (contact.tags || []).some((t) => t.toLowerCase() === selectedTag.value.toLowerCase())
             : true;
-
         const premiumMatch = selectedPremium.value
-            ? selectedPremium.value === "premium"
-                ? contact.user_premium === true
-                : contact.user_premium === false
+            ? selectedPremium.value === "premium" ? contact.user_premium === true : contact.user_premium === false
             : true;
-
         const requestStateMatch = selectedRequestState.value
             ? getRequestState(contact) === selectedRequestState.value
             : true;
-
         const textMatch = text
-            ? [
-                  contact.first_name,
-                  contact.last_name,
-                  contact.company_name,
-                  contact.email,
-              ].some(
-                  (field) =>
-                      field && field.toString().toLowerCase().includes(text),
+            ? [contact.first_name, contact.last_name, contact.company_name, contact.email].some(
+                (f) => f && f.toString().toLowerCase().includes(text)
               )
             : true;
-
-        return (
-            categoryMatch &&
-            tagMatch &&
-            premiumMatch &&
-            requestStateMatch &&
-            textMatch
-        );
+        return categoryMatch && tagMatch && premiumMatch && requestStateMatch && textMatch;
     });
 });
 
+const requestStateOrder = ["pending", "in-progress", "done"];
+
 const sortedContacts = computed(() => {
     const list = [...filteredContacts.value];
-
-    const normalizeName = (contact) => {
-        const first = contact.first_name || "";
-        const last = contact.last_name || "";
-        return `${first} ${last}`.trim().toLowerCase();
-    };
-
-    const parseDeadline = (contact) => {
-        const d = contact.deadline_time
-            ? new Date(contact.deadline_time)
-            : null;
+    const name = (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim().toLowerCase();
+    const deadline = (c) => {
+        const d = c.deadline_time ? new Date(c.deadline_time) : null;
         return d && !Number.isNaN(d.getTime()) ? d : new Date(8640000000000000);
     };
-
-    if (sortOption.value === "deadlineAsc") {
-        list.sort((a, b) => parseDeadline(a) - parseDeadline(b));
-    } else if (sortOption.value === "deadlineDesc") {
-        list.sort((a, b) => parseDeadline(b) - parseDeadline(a));
-    } else if (sortOption.value === "premiumHigh") {
-        list.sort(
-            (a, b) => (b.user_premium ? 1 : 0) - (a.user_premium ? 1 : 0),
-        );
-    } else if (sortOption.value === "premiumLow") {
-        list.sort(
-            (a, b) => (a.user_premium ? 1 : 0) - (b.user_premium ? 1 : 0),
-        );
-    } else if (sortOption.value === "nameAsc") {
-        list.sort((a, b) => normalizeName(a).localeCompare(normalizeName(b)));
-    } else if (sortOption.value === "nameDesc") {
-        list.sort((a, b) => normalizeName(b).localeCompare(normalizeName(a)));
-    } else if (sortOption.value === "stateAsc") {
-        list.sort((a, b) => {
-            const aState = requestStateOrder.indexOf(getRequestState(a));
-            const bState = requestStateOrder.indexOf(getRequestState(b));
-            return aState - bState;
-        });
-    } else if (sortOption.value === "stateDesc") {
-        list.sort((a, b) => {
-            const aState = requestStateOrder.indexOf(getRequestState(a));
-            const bState = requestStateOrder.indexOf(getRequestState(b));
-            return bState - aState;
-        });
-    }
-
-    const visible = list.filter((contact) => !hiddenRequests.value[contact.id]);
-    const hidden = list.filter((contact) => hiddenRequests.value[contact.id]);
-
+    if (sortOption.value === "deadlineAsc") list.sort((a, b) => deadline(a) - deadline(b));
+    else if (sortOption.value === "deadlineDesc") list.sort((a, b) => deadline(b) - deadline(a));
+    else if (sortOption.value === "premiumHigh") list.sort((a, b) => (b.user_premium ? 1 : 0) - (a.user_premium ? 1 : 0));
+    else if (sortOption.value === "premiumLow") list.sort((a, b) => (a.user_premium ? 1 : 0) - (b.user_premium ? 1 : 0));
+    else if (sortOption.value === "nameAsc") list.sort((a, b) => name(a).localeCompare(name(b)));
+    else if (sortOption.value === "nameDesc") list.sort((a, b) => name(b).localeCompare(name(a)));
+    else if (sortOption.value === "stateAsc") list.sort((a, b) => requestStateOrder.indexOf(getRequestState(a)) - requestStateOrder.indexOf(getRequestState(b)));
+    else if (sortOption.value === "stateDesc") list.sort((a, b) => requestStateOrder.indexOf(getRequestState(b)) - requestStateOrder.indexOf(getRequestState(a)));
+    const visible = list.filter((c) => !hiddenRequests.value[c.id]);
+    const hidden = list.filter((c) => hiddenRequests.value[c.id]);
     return visible.concat(hidden);
 });
 
 async function fetchContacts() {
     isLoading.value = true;
     fetchError.value = null;
-    const { data, error } = await supabase
-        .from("contacts")
-        .select("*")
-        .order("id", { ascending: false });
-
-    if (error) {
-        console.error("Supabase fetch error", error);
-        fetchError.value = error;
-        contacts.value = [];
-    } else {
-        contacts.value = data;
-    }
-
+    const { data, error } = await supabase.from("contacts").select("*").order("id", { ascending: false });
+    if (error) { fetchError.value = error; contacts.value = []; }
+    else contacts.value = data;
     isLoading.value = false;
 }
 
-function loadCommentsFromStorage() {
-    try {
-        const saved = localStorage.getItem("contactComments");
-        comments.value = saved ? JSON.parse(saved) : {};
-    } catch (error) {
-        comments.value = {};
-        console.error("Failed to load comments from localStorage", error);
-    }
+function loadFromStorage(key, ref) {
+    try { const s = localStorage.getItem(key); ref.value = s ? JSON.parse(s) : {}; }
+    catch { ref.value = {}; }
+}
+function saveToStorage(key, ref) {
+    try { localStorage.setItem(key, JSON.stringify(ref.value)); } catch {}
 }
 
-function saveCommentsToStorage() {
-    try {
-        localStorage.setItem("contactComments", JSON.stringify(comments.value));
-    } catch (error) {
-        console.error("Failed to save comments to localStorage", error);
-    }
-}
+function loadCommentsFromStorage() { loadFromStorage("contactComments", comments); }
+function saveCommentsToStorage() { saveToStorage("contactComments", comments); }
+function loadDeletedFromStorage() { loadFromStorage(deletedStorageKey, deletedRequests); }
+function saveDeletedToStorage() { saveToStorage(deletedStorageKey, deletedRequests); }
+function loadHiddenFromStorage() { loadFromStorage(hiddenStorageKey, hiddenRequests); }
+function saveHiddenToStorage() { saveToStorage(hiddenStorageKey, hiddenRequests); }
+function loadRequestStatesFromStorage() { loadFromStorage(requestStatesStorageKey, requestStates); }
+function saveRequestStatesToStorage() { saveToStorage(requestStatesStorageKey, requestStates); }
+function loadRequestPriorityFromStorage() { loadFromStorage(requestPriorityStorageKey, requestPriority); }
+function saveRequestPriorityToStorage() { saveToStorage(requestPriorityStorageKey, requestPriority); }
 
-function loadDeletedFromStorage() {
-    try {
-        const saved = localStorage.getItem(deletedStorageKey);
-        deletedRequests.value = saved ? JSON.parse(saved) : {};
-    } catch (error) {
-        deletedRequests.value = {};
-        console.error(
-            "Failed to load deleted request IDs from localStorage",
-            error,
-        );
-    }
+function getRequestState(contact) {
+    if (!contact?.id) return "pending";
+    return requestStates.value[String(contact.id)] || contact.state || "pending";
 }
-
-function saveDeletedToStorage() {
-    try {
-        localStorage.setItem(
-            deletedStorageKey,
-            JSON.stringify(deletedRequests.value),
-        );
-    } catch (error) {
-        console.error(
-            "Failed to save deleted request IDs to localStorage",
-            error,
-        );
-    }
+function setRequestState(contactId, state) {
+    requestStates.value[String(contactId)] = state;
+    saveRequestStatesToStorage();
 }
-
-function loadHiddenFromStorage() {
-    try {
-        const saved = localStorage.getItem(hiddenStorageKey);
-        hiddenRequests.value = saved ? JSON.parse(saved) : {};
-    } catch (error) {
-        hiddenRequests.value = {};
-        console.error(
-            "Failed to load hidden requests from localStorage",
-            error,
-        );
-    }
-}
-
-function saveHiddenToStorage() {
-    try {
-        localStorage.setItem(
-            hiddenStorageKey,
-            JSON.stringify(hiddenRequests.value),
-        );
-    } catch (error) {
-        console.error("Failed to save hidden requests to localStorage", error);
-    }
-}
-
-function loadRequestStatesFromStorage() {
-    try {
-        const saved = localStorage.getItem(requestStatesStorageKey);
-        requestStates.value = saved ? JSON.parse(saved) : {};
-    } catch (error) {
-        requestStates.value = {};
-        console.error("Failed to load request states from localStorage", error);
-    }
-}
-
-function saveRequestStatesToStorage() {
-    try {
-        localStorage.setItem(
-            requestStatesStorageKey,
-            JSON.stringify(requestStates.value),
-        );
-    } catch (error) {
-        console.error("Failed to save request states to localStorage", error);
-    }
-}
-
-function loadRequestPriorityFromStorage() {
-    try {
-        const saved = localStorage.getItem(requestPriorityStorageKey);
-        requestPriority.value = saved ? JSON.parse(saved) : {};
-    } catch (error) {
-        requestPriority.value = {};
-        console.error(
-            "Failed to load request priority from localStorage",
-            error,
-        );
-    }
-}
-
-function saveRequestPriorityToStorage() {
-    try {
-        localStorage.setItem(
-            requestPriorityStorageKey,
-            JSON.stringify(requestPriority.value),
-        );
-    } catch (error) {
-        console.error("Failed to save request priority to localStorage", error);
-    }
-}
-
 function getRequestPriority(contact) {
-    if (!contact || !contact.id) return "needs assignment";
+    if (!contact?.id) return "needs assignment";
     return requestPriority.value[contact.id] || "needs assignment";
 }
-
 function setRequestPriority(contactId, priority) {
-    if (!contactId) return;
     requestPriority.value[contactId] = priority;
     saveRequestPriorityToStorage();
 }
-
-const requestStateOrder = ["pending", "in-progress", "done"];
-
-function getRequestState(contact) {
-    if (!contact || !contact.id) return "pending";
-    const key = String(contact.id);
-    return requestStates.value[key] || contact.state || "pending";
-}
-
-function setRequestState(contactId, state) {
-    const key = String(contactId);
-    requestStates.value[key] = state;
-    saveRequestStatesToStorage();
-}
-
 function addComment(contactId) {
     const draft = (commentDrafts.value[contactId] || "").trim();
     if (!draft) return;
-
-    if (!comments.value[contactId]) {
-        comments.value[contactId] = [];
-    }
+    if (!comments.value[contactId]) comments.value[contactId] = [];
     comments.value[contactId].push(draft);
     commentDrafts.value[contactId] = "";
     saveCommentsToStorage();
 }
-
 function deleteComment(contactId, index) {
     if (!comments.value[contactId]) return;
     comments.value[contactId].splice(index, 1);
-    if (!comments.value[contactId].length) {
-        delete comments.value[contactId];
-    }
+    if (!comments.value[contactId].length) delete comments.value[contactId];
     saveCommentsToStorage();
 }
-
 function onCommentKeydown(contactId, event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        addComment(contactId);
-    }
+    if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); addComment(contactId); }
 }
-
 function deleteRequest(contactId) {
     if (!contactId) return;
     deletedRequests.value[contactId] = true;
     saveDeletedToStorage();
-    // Keep deleted requests excluded from list immediately
 }
-
 function toggleHidden(contactId) {
     if (!contactId) return;
-    if (hiddenRequests.value[contactId]) {
-        delete hiddenRequests.value[contactId];
-    } else {
-        hiddenRequests.value[contactId] = true;
-    }
+    if (hiddenRequests.value[contactId]) delete hiddenRequests.value[contactId];
+    else hiddenRequests.value[contactId] = true;
     saveHiddenToStorage();
 }
-
 function toggleExpanded(contactId) {
-    expandedContactId.value =
-        expandedContactId.value === contactId ? null : contactId;
+    expandedContactId.value = expandedContactId.value === contactId ? null : contactId;
 }
+function formatDeadline(val) {
+    if (!val) return "No deadline";
+    const d = new Date(val);
+    return Number.isNaN(d.getTime()) ? val : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+const priorityColors = { ASAP: "#e03c3c", high: "#e08800", medium: "#0fefaa", low: "#cacadd", "needs assignment": "#cacadd" };
+const stateColors = { pending: "#cacadd", "in-progress": "#11ede2", done: "#0fefaa" };
 
 onMounted(() => {
     fetchContacts();
@@ -626,955 +276,691 @@ onMounted(() => {
 </script>
 
 <template>
-    <section class="backend-panel">
-        <h2>Contacts from Supabase</h2>
+    <div class="page-wrapper">
+        <div class="bg-circle"></div>
 
-        <button type="button" @click="fetchContacts" :disabled="isLoading">
-            {{ isLoading ? "Refreshing..." : "Refresh contacts" }}
-        </button>
-        <button
-            type="button"
-            @click="sendAllContactsToNotion"
-            class="notion-sync-btn"
-            :disabled="isLoading"
-        >
-            Send all displayed to Notion
-        </button>
-        <router-link to="/detail/teamassign" class="team-assign-link"
-            >Team Assignment View</router-link
-        >
+        <div class="panel-content">
 
-        <div v-if="fetchError" class="error">
-            Error loading contacts: {{ fetchError.message || fetchError }}
-        </div>
-
-        <div v-else-if="isLoading" class="loading">Loading contacts...</div>
-        <div v-else>
-            <div class="search-panel">
-                <label>
-                    Search name/company/email:
-                    <input
-                        v-model="textSearch"
-                        type="text"
-                        placeholder="Type keywords..."
-                    />
-                </label>
-
-                <label>
-                    Category:
-                    <select
-                        v-model="selectedCategory"
-                        @change="selectedTag = ''"
-                    >
-                        <option value="">All categories</option>
-                        <option
-                            v-for="item in categoryOptions"
-                            :key="item.value"
-                            :value="item.value"
-                        >
-                            {{ item.label }}
-                        </option>
-                    </select>
-                </label>
-
-                <label>
-                    Tag:
-                    <select v-model="selectedTag" :disabled="!selectedCategory">
-                        <option value="">All tags</option>
-                        <option
-                            v-for="tag in availableTags"
-                            :key="tag"
-                            :value="tag"
-                        >
-                            {{ tag }}
-                        </option>
-                    </select>
-                </label>
-
-                <label>
-                    Premium status:
-                    <select v-model="selectedPremium">
-                        <option value="">All</option>
-                        <option value="premium">Premium</option>
-                        <option value="standard">Standard</option>
-                    </select>
-                </label>
-
-                <label>
-                    Request status:
-                    <select v-model="selectedRequestState">
-                        <option value="">All</option>
-                        <option
-                            v-for="stage in requestStateOptions"
-                            :key="stage"
-                            :value="stage"
-                        >
-                            {{ stage }}
-                        </option>
-                    </select>
-                </label>
-
-                <label>
-                    Sort by:
-                    <select v-model="sortOption">
-                        <option value="deadlineAsc">
-                            Deadline (soonest first)
-                        </option>
-                        <option value="deadlineDesc">
-                            Deadline (latest first)
-                        </option>
-                        <option value="premiumHigh">Premium first</option>
-                        <option value="premiumLow">Premium last</option>
-                        <option value="nameAsc">Name A-Z</option>
-                        <option value="nameDesc">Name Z-A</option>
-                        <option value="stateAsc">
-                            State (pending → in-progress → done)
-                        </option>
-                        <option value="stateDesc">
-                            State (done → in-progress → pending)
-                        </option>
-                    </select>
-                </label>
+            <!-- ── Header ── -->
+            <div class="panel-header">
+                <RouterLink to="/detail/back" class="back-link">← Dashboard</RouterLink>
+                <h1 class="panel-title">Request Search</h1>
+                <p class="panel-subtitle">{{ sortedContacts.length }} contact{{ sortedContacts.length !== 1 ? 's' : '' }} shown</p>
             </div>
 
-            <div v-if="sortedContacts.length === 0" class="no-contacts">
-                No contacts found.
+            <!-- ── Top Actions ── -->
+            <div class="top-actions">
+                <button class="action-btn action-btn--primary" @click="fetchContacts" :disabled="isLoading">
+                    {{ isLoading ? "Refreshing…" : "↻ Refresh" }}
+                </button>
+                <button class="action-btn action-btn--notion" @click="sendAllContactsToNotion" :disabled="isLoading">
+                    📋 Sync to Notion
+                </button>
+                <RouterLink to="/detail/teamassign" class="action-btn action-btn--outline">
+                    👥 Team View
+                </RouterLink>
+                <span v-if="notionSyncStatus" class="sync-status">{{ notionSyncStatus }}</span>
             </div>
 
-            <div v-else class="cards-container">
-                <div
-                    v-for="contact in sortedContacts"
-                    :key="contact.id"
-                    :class="[
-                        'contact-card',
-                        {
-                            hidden: hiddenRequests[contact.id],
-                            expanded: expandedContactId === contact.id,
-                        },
-                    ]"
-                >
-                    <div
-                        class="card-top-row"
-                        @click="toggleExpanded(contact.id)"
-                        style="cursor: pointer"
-                    >
-                        <div>
-                            <strong>{{
-                                contact.company_name || "Unnamed"
-                            }}</strong>
-                            <small class="expand-hint"
-                                >[{{
-                                    expandedContactId === contact.id
-                                        ? "hide details"
-                                        : "show details"
-                                }}]</small
-                            >
-                        </div>
-                        <div class="card-summary">
-                            {{ contact.first_name || "N/A" }}
-                            {{ contact.last_name || "N/A" }} •
-                            {{ contact.category || "Uncategorized" }} •
-                            {{ getRequestState(contact) }}
-                        </div>
-                        <div class="card-actions">
-                            <button
-                                type="button"
-                                class="delete-card"
-                                @click.stop="deleteRequest(contact.id)"
-                            >
-                                Delete
-                            </button>
-                            <button
-                                type="button"
-                                class="hide-card"
-                                @click.stop="toggleHidden(contact.id)"
-                            >
-                                {{
-                                    hiddenRequests[contact.id] ? "Show" : "Hide"
-                                }}
-                            </button>
-                        </div>
+            <!-- ── Error / Loading ── -->
+            <div v-if="fetchError" class="state-msg state-msg--error">
+                ⚠️ {{ fetchError.message || fetchError }}
+            </div>
+            <div v-else-if="isLoading" class="state-msg">Loading contacts…</div>
+
+            <template v-else>
+                <!-- ── Filters ── -->
+                <div class="filters-bar">
+                    <div class="filter-group filter-group--wide">
+                        <label class="filter-label">Search</label>
+                        <input
+                            v-model="textSearch"
+                            type="text"
+                            class="filter-input"
+                            placeholder="Name, company, email…"
+                        />
                     </div>
-
-                    <div
-                        class="expanded-details"
-                        v-if="expandedContactId === contact.id"
-                    >
-                        <div class="card-row name-row">
-                            {{ contact.first_name || "N/A" }}
-                            {{ contact.last_name || "N/A" }}
-                        </div>
-
-                        <div class="card-row description-row">
-                            {{ contact.short_description || "N/A" }}
-                        </div>
-
-                        <div class="card-row meta-row">
-                            <span
-                                >Deadline:
-                                {{ contact.deadline_time || "N/A" }}</span
-                            >
-                            <span
-                                >Premium:
-                                {{ contact.user_premium ? "Yes" : "No" }}</span
-                            >
-                            <span
-                                >Type:
-                                {{ contact.business_or_person || "N/A" }}</span
-                            >
-                        </div>
-
-                        <div class="card-row contact-info-row">
-                            <span v-if="contact.email"
-                                >Email: {{ contact.email }}</span
-                            >
-                            <span v-if="contact.phone"
-                                >Phone: {{ contact.phone }}</span
-                            >
-                            <span v-if="contact.location"
-                                >Location: {{ contact.location }}</span
-                            >
-                        </div>
-
-                        <div class="card-row linkedin-row">
-                            LinkedIn:
-                            <a
-                                v-if="contact.linkedin_profile"
-                                :href="contact.linkedin_profile"
-                                target="_blank"
-                                >profile</a
-                            >
-                            <span v-else>N/A</span>
-                        </div>
-
-                        <div class="card-row category-row">
-                            Category: {{ contact.category || "N/A" }}
-                        </div>
-
-                        <div class="card-row team-row">
-                            Assigned team: {{ getAssignedTeam(contact) }}
-                        </div>
-
-                        <div class="card-row tags-row">
-                            Tags: {{ (contact.tags || []).join(", ") || "N/A" }}
-                        </div>
-
-                        <div class="card-row state-row">
-                            <span class="label">State:</span>
-                            <select
-                                :value="getRequestState(contact)"
-                                @change="
-                                    (event) =>
-                                        setRequestState(
-                                            contact.id,
-                                            event.target.value,
-                                        )
-                                "
-                            >
-                                <option value="pending">Pending</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="done">Done</option>
-                            </select>
-                        </div>
-
-                        <div class="card-row priority-row">
-                            <span class="label">Priority:</span>
-                            <select
-                                :value="getRequestPriority(contact)"
-                                @change="
-                                    (event) =>
-                                        setRequestPriority(
-                                            contact.id,
-                                            event.target.value,
-                                        )
-                                "
-                            >
-                                <option value="need assignment">
-                                    Need assignment
-                                </option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="ASAP">ASAP</option>
-                            </select>
-                        </div>
-
-                        <div class="comment-input">
-                            <label>
-                                Add Comment:
-                                <input
-                                    type="text"
-                                    v-model="commentDrafts[contact.id]"
-                                    @keydown="
-                                        (event) =>
-                                            onCommentKeydown(contact.id, event)
-                                    "
-                                    placeholder="Type and press Enter"
-                                />
-                            </label>
-                            <button
-                                type="button"
-                                @click="addComment(contact.id)"
-                            >
-                                Save comment
-                            </button>
-                        </div>
-
-                        <div
-                            class="comment-list"
-                            v-if="
-                                comments[contact.id] &&
-                                comments[contact.id].length
-                            "
-                        >
-                            Comments:
-                            <ul>
-                                <li
-                                    v-for="(c, idx) in comments[contact.id]"
-                                    :key="`${contact.id}-${idx}`"
-                                >
-                                    <span>{{ c }}</span>
-                                    <button
-                                        type="button"
-                                        class="delete-comment"
-                                        @click="deleteComment(contact.id, idx)"
-                                    >
-                                        ×
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Category</label>
+                        <select class="filter-input" v-model="selectedCategory" @change="selectedTag = ''">
+                            <option value="">All categories</option>
+                            <option v-for="item in categoryOptions" :key="item.value" :value="item.value">
+                                {{ item.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Tag</label>
+                        <select class="filter-input" v-model="selectedTag" :disabled="!selectedCategory">
+                            <option value="">All tags</option>
+                            <option v-for="tag in availableTags" :key="tag" :value="tag">{{ tag }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Premium</label>
+                        <select class="filter-input" v-model="selectedPremium">
+                            <option value="">All</option>
+                            <option value="premium">Premium</option>
+                            <option value="standard">Standard</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Status</label>
+                        <select class="filter-input" v-model="selectedRequestState">
+                            <option value="">All</option>
+                            <option v-for="stage in requestStateOptions" :key="stage" :value="stage">{{ stage }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Sort</label>
+                        <select class="filter-input" v-model="sortOption">
+                            <option value="deadlineAsc">Deadline ↑</option>
+                            <option value="deadlineDesc">Deadline ↓</option>
+                            <option value="premiumHigh">Premium first</option>
+                            <option value="premiumLow">Premium last</option>
+                            <option value="nameAsc">Name A → Z</option>
+                            <option value="nameDesc">Name Z → A</option>
+                            <option value="stateAsc">State: pending → done</option>
+                            <option value="stateDesc">State: done → pending</option>
+                        </select>
                     </div>
                 </div>
-            </div>
+
+                <!-- ── Empty state ── -->
+                <div v-if="sortedContacts.length === 0" class="state-msg">
+                    No contacts match your filters.
+                </div>
+
+                <!-- ── Cards ── -->
+                <div v-else class="cards-grid">
+                    <div
+                        v-for="contact in sortedContacts"
+                        :key="contact.id"
+                        :class="['contact-card', { 'contact-card--hidden': hiddenRequests[contact.id], 'contact-card--expanded': expandedContactId === contact.id }]"
+                    >
+                        <!-- Collapsed header (always visible) -->
+                        <div class="card-header" @click="toggleExpanded(contact.id)">
+                            <div class="card-header-left">
+                                <span class="card-company">{{ contact.company_name || "Unnamed" }}</span>
+                                <span
+                                    class="state-pill"
+                                    :style="{ background: stateColors[getRequestState(contact)] + '22', color: stateColors[getRequestState(contact)], borderColor: stateColors[getRequestState(contact)] }"
+                                >{{ getRequestState(contact) }}</span>
+                                <span v-if="contact.user_premium" class="premium-pill">★ Premium</span>
+                            </div>
+                            <div class="card-header-right">
+                                <span class="card-meta">
+                                    {{ contact.first_name || "" }} {{ contact.last_name || "" }}
+                                    <template v-if="contact.category"> · {{ toDisplayName(contact.category) }}</template>
+                                </span>
+                                <div class="card-actions">
+                                    <button class="btn-action btn-hide" @click.stop="toggleHidden(contact.id)">
+                                        {{ hiddenRequests[contact.id] ? 'Show' : 'Hide' }}
+                                    </button>
+                                    <button class="btn-action btn-delete" @click.stop="deleteRequest(contact.id)">Delete</button>
+                                    <span class="expand-caret">{{ expandedContactId === contact.id ? '▲' : '▼' }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expanded details -->
+                        <Transition name="slide">
+                            <div v-if="expandedContactId === contact.id" class="card-body">
+
+                                <!-- Identity block -->
+                                <div class="detail-section">
+                                    <p class="detail-name">{{ contact.first_name || "" }} {{ contact.last_name || "" }}</p>
+                                    <p v-if="contact.short_description" class="detail-description">{{ contact.short_description }}</p>
+                                </div>
+
+                                <!-- Info chips -->
+                                <div class="chips-row">
+                                    <span class="chip">📅 {{ formatDeadline(contact.deadline_time) }}</span>
+                                    <span class="chip">{{ contact.business_or_person || 'N/A' }}</span>
+                                    <span class="chip">{{ toDisplayName(contact.category || 'uncategorized') }}</span>
+                                    <span class="chip">{{ getAssignedTeam(contact) }}</span>
+                                </div>
+
+                                <!-- Contact info -->
+                                <div class="chips-row">
+                                    <span v-if="contact.email" class="chip chip--contact">✉ {{ contact.email }}</span>
+                                    <span v-if="contact.phone" class="chip chip--contact">📞 {{ contact.phone }}</span>
+                                    <span v-if="contact.location" class="chip chip--contact">📍 {{ contact.location }}</span>
+                                    <a v-if="contact.linkedin_profile" :href="contact.linkedin_profile" target="_blank" class="chip chip--link">LinkedIn ↗</a>
+                                </div>
+
+                                <!-- Tags -->
+                                <div v-if="contact.tags && contact.tags.length" class="chips-row">
+                                    <span v-for="tag in contact.tags" :key="tag" class="chip chip--tag">{{ tag }}</span>
+                                </div>
+
+                                <!-- State + Priority selects -->
+                                <div class="selects-row">
+                                    <div class="select-group">
+                                        <label class="select-label">State</label>
+                                        <select
+                                            class="inline-select"
+                                            :value="getRequestState(contact)"
+                                            :style="{ borderColor: stateColors[getRequestState(contact)] }"
+                                            @change="(e) => setRequestState(contact.id, e.target.value)"
+                                        >
+                                            <option value="pending">Pending</option>
+                                            <option value="in-progress">In Progress</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                    </div>
+                                    <div class="select-group">
+                                        <label class="select-label">Priority</label>
+                                        <select
+                                            class="inline-select"
+                                            :value="getRequestPriority(contact)"
+                                            :style="{ borderColor: priorityColors[getRequestPriority(contact)] }"
+                                            @change="(e) => setRequestPriority(contact.id, e.target.value)"
+                                        >
+                                            <option value="needs assignment">Needs assignment</option>
+                                            <option value="low">Low</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="high">High</option>
+                                            <option value="ASAP">ASAP</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Comments -->
+                                <div class="comments-section">
+                                    <p class="select-label">Notes</p>
+                                    <div v-if="comments[contact.id] && comments[contact.id].length" class="comment-list">
+                                        <div
+                                            v-for="(c, idx) in comments[contact.id]"
+                                            :key="`${contact.id}-${idx}`"
+                                            class="comment-item"
+                                        >
+                                            <span>{{ c }}</span>
+                                            <button class="btn-delete-comment" @click="deleteComment(contact.id, idx)">×</button>
+                                        </div>
+                                    </div>
+                                    <div class="comment-input-row">
+                                        <input
+                                            type="text"
+                                            class="comment-input"
+                                            v-model="commentDrafts[contact.id]"
+                                            @keydown="(e) => onCommentKeydown(contact.id, e)"
+                                            placeholder="Add a note and press Enter…"
+                                        />
+                                        <button class="btn-add-comment" @click="addComment(contact.id)">Add</button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </Transition>
+                    </div>
+                </div>
+            </template>
         </div>
-    </section>
+    </div>
 </template>
+
 <style scoped>
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-/* ─── Brand Tokens ─── */
-:root {
-    --white: #ffffff;
-    --navy: #171642;
-    --slate: #676789;
-    --lavender: #cacadd;
-    --mint: #0fefaa;
-    --cyan: #11ede2;
-    --grad: linear-gradient(135deg, #0fefaa 0%, #11ede2 100%);
-}
-
-/* ─── Page ─── */
-.backend-panel {
+/* ── Page shell ── */
+.page-wrapper {
     min-height: 100vh;
-    background: var(--white);
-    color: var(--navy);
-    font-family: "Red Hat Text", sans-serif;
-    border-left: 6px solid var(--green);
-    padding: 3rem 2.5rem;
-}
-
-.backend-panel h2 {
-    font-family: "Sora", sans-serif;
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    font-weight: 800;
-    color: var(--navy);
-    margin-bottom: 2rem;
-    letter-spacing: -0.01em;
-}
-
-/* ─── Header Buttons ─── */
-.backend-panel > button {
-    padding: 0.75rem 1.75rem;
-    font-size: 0.9rem;
-    font-weight: 700;
-    font-family: "Red Hat Text", sans-serif;
-    cursor: pointer;
-    border: none;
-    border-radius: 2rem;
-    background: var(--grad);
-    color: var(--navy);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-right: 0.75rem;
-    margin-bottom: 2rem;
-    display: inline-block;
+    background: linear-gradient(135deg, #0fefaa 0%, #11ede2 100%);
     position: relative;
-    overflow: hidden;
-}
-
-.backend-panel > button::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: all 0.6s ease;
-}
-
-.backend-panel > button:hover {
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 250, 170, 0.4);
-}
-
-.backend-panel > button:hover::before {
-    left: 100%;
-}
-
-.backend-panel > button:active {
-    transform: translateY(-1px) scale(0.98);
-}
-
-.backend-panel > button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-}
-.backend-panel > button:disabled:hover {
-    transform: none;
-    box-shadow: none;
-}
-
-.notion-sync-btn {
-    background: var(--navy) !important;
-    color: var(--white) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.notion-sync-btn::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: all 0.6s ease;
-}
-
-.notion-sync-btn:hover {
-    opacity: 0.8 !important;
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 250, 170, 0.4);
-}
-
-.notion-sync-btn:hover::before {
-    left: 100%;
-}
-
-.team-assign-link {
-    display: inline-block;
-    padding: 0.75rem 1.75rem;
-    font-size: 0.9rem;
-    font-weight: 700;
-    font-family: "Red Hat Text", sans-serif;
-    cursor: pointer;
-    border: none;
-    border-radius: 2rem;
-    background: var(--grad);
-    color: var(--navy);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    margin-right: 0.75rem;
-    margin-bottom: 2rem;
-}
-
-.team-assign-link::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-    );
-    transition: all 0.6s ease;
-}
-
-.team-assign-link:hover {
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 250, 170, 0.4);
-}
-
-.team-assign-link:hover::before {
-    left: 100%;
-}
-
-.team-assign-link:active {
-    transform: translateY(-1px) scale(0.98);
-}
-
-/* ─── Error / Loading ─── */
-.error {
-    background: #fff0f0;
-    border: 1.5px solid #ffcccc;
-    border-radius: 0.75rem;
-    padding: 1rem 1.5rem;
-    color: #cc0000;
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-}
-
-.loading {
-    color: var(--mid);
-    font-size: 1rem;
-    padding: 3rem 0;
-    text-align: center;
-}
-
-/* ─── Search Panel ─── */
-.search-panel {
+    overflow-x: hidden;
+    padding: 4rem 2rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    background: #f4fdfb;
-    border: 1.5px solid var(--light);
-    border-top: 4px solid var(--green);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin-bottom: 2.5rem;
+    justify-content: center;
 }
 
-.search-panel label {
+.bg-circle {
+    position: fixed;
+    right: -220px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: #ffffff;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.45;
+}
+
+.panel-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ── Header ── */
+.panel-header { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.back-link {
+    font-family: "Red Hat Text", sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #171642;
+    text-decoration: none;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    width: fit-content;
+}
+.back-link:hover { opacity: 1; }
+
+.panel-title {
+    font-family: "Sora", sans-serif;
+    font-weight: 800;
+    font-size: 3.375rem;
+    color: #171642;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.panel-subtitle {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 1rem;
+    color: #171642;
+    opacity: 0.6;
+    margin: 0;
+}
+
+/* ── Top actions ── */
+.top-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 0.65rem 1.5rem;
+    font-family: "Red Hat Text", sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 2rem;
+    border: 2px solid #171642;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+}
+
+.action-btn--primary {
+    background: #171642;
+    color: #ffffff;
+    border-color: #171642;
+}
+.action-btn--primary:hover { background: #2a2870; border-color: #2a2870; }
+.action-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.action-btn--notion {
+    background: #ffffff;
+    color: #171642;
+    border-color: #171642;
+}
+.action-btn--notion:hover { background: #171642; color: #ffffff; }
+
+.action-btn--outline {
+    background: transparent;
+    color: #171642;
+    border-color: #171642;
+}
+.action-btn--outline:hover { background: #171642; color: #ffffff; }
+
+.sync-status {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.85rem;
+    color: #171642;
+    opacity: 0.7;
+    padding-left: 0.5rem;
+}
+
+/* ── State messages ── */
+.state-msg {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 1rem;
+    color: #171642;
+    opacity: 0.65;
+    text-align: center;
+    padding: 2rem 0;
+}
+.state-msg--error { opacity: 1; color: #c0392b; }
+
+/* ── Filters ── */
+.filters-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    background: rgba(255,255,255,0.55);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    backdrop-filter: blur(8px);
+}
+
+.filter-group {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    flex: 1;
+    min-width: 140px;
+}
+.filter-group--wide { min-width: 220px; flex: 2; }
+
+.filter-label {
+    font-family: "Red Hat Text", sans-serif;
     font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    color: #171642;
     text-transform: uppercase;
-    color: var(--mid);
-    flex: 1;
-    min-width: 150px;
+    letter-spacing: 0.07em;
+    opacity: 0.65;
 }
 
-.search-panel input,
-.search-panel select {
-    padding: 0.55rem 0.9rem;
+.filter-input {
+    padding: 0.65rem 0.9rem;
     font-size: 0.9rem;
     font-family: "Red Hat Text", sans-serif;
-    color: var(--navy);
-    background: var(--white);
-    border: 1.5px solid var(--light);
-    border-radius: 0.5rem;
+    color: #171642;
+    background: #ffffff;
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
     outline: none;
     transition: border-color 0.2s;
-    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(23,22,66,0.06);
 }
+.filter-input:focus { border-color: #171642; }
 
-.search-panel input:focus,
-.search-panel select:focus {
-    border-color: var(--green);
-}
-
-/* ─── No Contacts ─── */
-.no-contacts {
-    text-align: center;
-    color: var(--mid);
-    padding: 5rem 0;
-    font-size: 1rem;
-}
-
-/* ─── Cards Grid ─── */
-.cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 1.25rem;
-}
-
-/* ─── Contact Card ─── */
-.contact-card {
-    background: var(--white);
-    border: 1.5px solid var(--light);
-    border-radius: 1rem;
-    padding: 1.25rem 1.5rem;
+/* ── Cards grid ── */
+.cards-grid {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 0.75rem;
+}
+
+/* ── Contact card ── */
+.contact-card {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 18px rgba(23,22,66,0.07);
     overflow: hidden;
-    position: relative;
-    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+    transition: border-color 0.25s, box-shadow 0.25s;
 }
+.contact-card:hover { border-color: #171642; box-shadow: 0 8px 28px rgba(23,22,66,0.12); }
+.contact-card--hidden { opacity: 0.4; border-style: dashed; }
+.contact-card--expanded { border-color: #171642; }
 
-.contact-card:hover {
-    border-color: var(--green);
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 250, 170, 0.2);
-}
-
-/* Enhanced card styles for expanded state */
-.contact-card.expanded {
-    transform: scale(1.05) !important;
-    z-index: 1000 !important;
-    box-shadow: 0 1rem 3rem rgba(15, 250, 170, 0.25) !important;
-    border-color: var(--green) !important;
-    background: var(--white) !important;
-    max-width: 800px;
-    margin-left: auto !important;
-    margin-right: auto !important;
-}
-
-/* Hide other cards when one is expanded */
-.contact-card:not(.expanded) {
-    opacity: 0.6 !important;
-    transform: scale(0.97) !important;
-}
-
-.contact-card.hidden {
-    opacity: 0.35;
-    border-style: dashed;
-}
-
-/* ─── Card Top Row (collapsed) ─── */
-.card-top-row {
+/* ── Card header (always visible) ── */
+.card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
-    padding-bottom: 0.75rem;
-}
-
-.card-top-row strong {
-    font-family: "Sora", sans-serif;
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--navy);
-}
-
-.expand-hint {
-    font-size: 0.72rem;
-    font-weight: 400;
-    color: var(--green);
-    margin-left: 0.5rem;
-    letter-spacing: 0.02em;
+    gap: 1rem;
+    padding: 1.1rem 1.4rem;
     cursor: pointer;
+    flex-wrap: wrap;
 }
 
-.card-summary {
-    font-size: 0.8rem;
-    color: var(--mid);
-    flex: 1;
-    line-height: 1.4;
+.card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
 }
 
-/* ─── Card Actions ─── */
+.card-company {
+    font-family: "Sora", sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #171642;
+}
+
+.state-pill, .premium-pill {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 2rem;
+    padding: 0.2rem 0.65rem;
+    border: 1.5px solid;
+    white-space: nowrap;
+}
+
+.premium-pill {
+    background: #171642;
+    color: #0fefaa;
+    border-color: #171642;
+}
+
+.card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.card-meta {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.82rem;
+    color: #676789;
+}
+
 .card-actions {
     display: flex;
-    gap: 0.4rem;
-    flex-shrink: 0;
-}
-
-.delete-card,
-.hide-card {
-    padding: 0.3rem 0.8rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    font-family: "Red Hat Text", sans-serif;
-    border-radius: 2rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-}
-
-.delete-card {
-    background: #ffecec;
-    color: #cc0000;
-}
-
-.delete-card:hover {
-    background: #cc0000;
-    color: var(--white);
-}
-
-.hide-card {
-    background: #f0f0f8;
-    color: var(--mid);
-}
-
-.hide-card:hover {
-    background: var(--navy);
-    color: var(--white);
-}
-
-/* ─── Expanded Details ─── */
-.expanded-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 1.5px solid var(--light);
-    animation: slideDown 0.2s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* ─── Card Rows ─── */
-.card-row {
-    font-size: 0.875rem;
-    color: var(--mid);
-    line-height: 1.5;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #f0f0f8;
-}
-
-.card-row:last-of-type {
-    border-bottom: none;
-}
-
-.name-row {
-    font-family: "Sora", sans-serif;
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: var(--navy);
-}
-
-.description-row {
-    font-style: italic;
-    color: var(--mid);
-}
-
-.meta-row,
-.contact-info-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.meta-row span,
-.contact-info-row span {
-    background: #f4fdfb;
-    border: 1px solid var(--light);
-    border-radius: 2rem;
-    padding: 0.2rem 0.7rem;
-    font-size: 0.78rem;
-    color: var(--navy);
-    white-space: nowrap;
-}
-
-.linkedin-row a {
-    color: var(--green);
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.linkedin-row a:hover {
-    text-decoration: underline;
-}
-
-/* ─── State Row ─── */
-.state-row,
-.priority-row {
-    display: flex;
     align-items: center;
-    gap: 0.75rem;
-    border-bottom: none;
+    gap: 0.4rem;
 }
 
-.state-row .label,
-.priority-row .label {
+.btn-action {
+    font-family: "Red Hat Text", sans-serif;
     font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--mid);
-    white-space: nowrap;
-    min-width: 56px;
-}
-
-.state-row select,
-.priority-row select {
-    flex: 1;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.875rem;
-    font-family: "Red Hat Text", sans-serif;
-    color: var(--navy);
-    background: var(--white);
-    border: 1.5px solid var(--light);
-    border-radius: 0.5rem;
-    outline: none;
-    cursor: pointer;
-    transition: border-color 0.2s;
-}
-
-.state-row select:focus,
-.priority-row select:focus {
-    border-color: var(--green);
-}
-
-/* Priority color coding */
-.priority-row select[data-priority="ASAP"] {
-    border-color: #ff4444;
-    color: #cc0000;
-}
-.priority-row select[data-priority="high"] {
-    border-color: #ff8800;
-    color: #994d00;
-}
-.priority-row select[data-priority="medium"] {
-    border-color: var(--green);
-}
-.priority-row select[data-priority="low"] {
-    border-color: var(--light);
-}
-.priority-row select[data-priority="need assignment"] {
-    border-style: dashed;
-    color: var(--mid);
-}
-
-/* ─── Comments ─── */
-.comment-input {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-top: 0.75rem;
-}
-
-.comment-input label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--mid);
-}
-
-.comment-input input {
-    padding: 0.55rem 0.9rem;
-    font-size: 0.875rem;
-    font-family: "Red Hat Text", sans-serif;
-    color: var(--navy);
-    border: 1.5px solid var(--light);
-    border-radius: 0.5rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.comment-input input:focus {
-    border-color: var(--green);
-}
-
-.comment-input button {
-    align-self: flex-start;
-    padding: 0.4rem 1.25rem;
-    font-size: 0.825rem;
-    font-weight: 700;
-    font-family: "Red Hat Text", sans-serif;
-    cursor: pointer;
-    border: none;
+    padding: 0.25rem 0.75rem;
     border-radius: 2rem;
-    background: var(--grad);
-    color: var(--navy);
+    border: none;
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-.comment-input button:hover {
-    opacity: 0.85;
-    transform: translateY(-1px);
+.btn-hide { background: #f0f0f8; color: #676789; }
+.btn-hide:hover { background: #171642; color: #ffffff; }
+
+.btn-delete { background: #fff0f0; color: #cc0000; }
+.btn-delete:hover { background: #cc0000; color: #ffffff; }
+
+.expand-caret {
+    font-size: 0.7rem;
+    color: #171642;
+    opacity: 0.4;
+    user-select: none;
 }
 
-/* ─── Comment List ─── */
-.comment-list {
+/* ── Card body (expanded) ── */
+.card-body {
+    padding: 0 1.4rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-top: 1.5px solid #f0f0f8;
+    padding-top: 1.1rem;
+}
+
+.detail-section { display: flex; flex-direction: column; gap: 0.3rem; }
+.detail-name {
+    font-family: "Sora", sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #171642;
+    margin: 0;
+}
+.detail-description {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.9rem;
+    color: #676789;
+    font-style: italic;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ── Chips ── */
+.chips-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.chip {
+    font-family: "Red Hat Text", sans-serif;
     font-size: 0.8rem;
-    color: var(--mid);
-    padding-top: 0.5rem;
+    font-weight: 500;
+    background: #f4fdfb;
+    border: 1.5px solid #cacadd;
+    border-radius: 2rem;
+    padding: 0.25rem 0.75rem;
+    color: #171642;
+    white-space: nowrap;
+}
+.chip--contact { background: #f0f0f8; border-color: #d0d0e8; }
+.chip--tag { background: #e8fdf5; border-color: #0fefaa; color: #0a8f65; }
+.chip--link {
+    text-decoration: none;
+    background: #171642;
+    color: #0fefaa;
+    border-color: #171642;
+    transition: opacity 0.2s;
+}
+.chip--link:hover { opacity: 0.8; }
+
+/* ── Selects row ── */
+.selects-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-.comment-list ul {
-    list-style: none;
-    margin-top: 0.4rem;
+.select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    min-width: 140px;
+}
+
+.select-label {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #171642;
+    opacity: 0.5;
+    margin: 0;
+}
+
+.inline-select {
+    padding: 0.5rem 0.75rem;
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.875rem;
+    color: #171642;
+    background: #ffffff;
+    border: 2px solid #cacadd;
+    border-radius: 0.65rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+.inline-select:focus { border-color: #171642; }
+
+/* ── Comments ── */
+.comments-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.comment-list {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
 }
 
-.comment-list li {
+.comment-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: #f4fdfb;
-    border-radius: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    border-radius: 0.6rem;
+    padding: 0.45rem 0.75rem;
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.875rem;
+    color: #171642;
     gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--navy);
 }
 
-.delete-comment {
+.btn-delete-comment {
     background: none;
     border: none;
-    color: var(--light);
-    font-size: 1rem;
+    color: #cacadd;
+    font-size: 1.1rem;
     cursor: pointer;
     line-height: 1;
-    transition: color 0.2s;
     padding: 0;
     flex-shrink: 0;
+    transition: color 0.2s;
+}
+.btn-delete-comment:hover { color: #cc0000; }
+
+.comment-input-row {
+    display: flex;
+    gap: 0.5rem;
 }
 
-.delete-comment:hover {
-    color: #cc0000;
-}
-
-/* ─── Notion Status ─── */
-.notion-status {
-    margin-top: 2.5rem;
-    text-align: center;
+.comment-input {
+    flex: 1;
+    padding: 0.55rem 0.9rem;
+    font-family: "Red Hat Text", sans-serif;
     font-size: 0.875rem;
-    color: var(--mid);
-    min-height: 1.5rem;
+    color: #171642;
+    background: #ffffff;
+    border: 2px solid #cacadd;
+    border-radius: 0.65rem;
+    outline: none;
+    transition: border-color 0.2s;
 }
+.comment-input:focus { border-color: #171642; }
 
-/* ─── Responsive ─── */
+.btn-add-comment {
+    padding: 0.55rem 1.25rem;
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    background: #171642;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.65rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.btn-add-comment:hover { background: #2a2870; }
+
+/* ── Slide transition ── */
+.slide-enter-active { transition: all 0.22s ease; }
+.slide-leave-active { transition: all 0.18s ease; }
+.slide-enter-from, .slide-leave-to { opacity: 0; transform: translateY(-8px); }
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .backend-panel {
-        padding: 2rem 1rem;
-    }
-    .cards-container {
-        grid-template-columns: 1fr;
-    }
-    .search-panel {
-        flex-direction: column;
-    }
-    .search-panel label {
-        min-width: 100%;
-    }
-    .card-top-row {
-        flex-wrap: wrap;
-    }
+    .panel-title { font-size: 2.4rem; }
+    .bg-circle { display: none; }
+    .filters-bar { flex-direction: column; }
+    .filter-group, .filter-group--wide { min-width: 100%; flex: unset; }
+    .card-header { flex-direction: column; align-items: flex-start; }
+    .card-header-right { width: 100%; justify-content: space-between; }
+    .selects-row { flex-direction: column; }
 }
 </style>
