@@ -12,7 +12,7 @@ const isLoading = ref(false);
 const fetchError = ref(null);
 const selectedTeam = ref("");
 const sortOption = ref("deadlineAsc");
-const columnCount = ref(3); // Number of columns for the grid
+const columnCount = ref(3);
 
 const teamCategoryMap = {
     "Investment Team": ["investory", "investment_deal"],
@@ -70,9 +70,7 @@ const sortedContacts = computed(() => {
     const list = [...filteredContacts.value];
 
     const parseDeadline = (contact) => {
-        const d = contact.deadline_time
-            ? new Date(contact.deadline_time)
-            : null;
+        const d = contact.deadline_time ? new Date(contact.deadline_time) : null;
         return d && !Number.isNaN(d.getTime()) ? d : new Date(8640000000000000);
     };
 
@@ -81,91 +79,98 @@ const sortedContacts = computed(() => {
     } else if (sortOption.value === "deadlineDesc") {
         list.sort((a, b) => parseDeadline(b) - parseDeadline(a));
     } else if (sortOption.value === "premiumHigh") {
-        list.sort(
-            (a, b) => (b.user_premium ? 1 : 0) - (a.user_premium ? 1 : 0),
-        );
+        list.sort((a, b) => (b.user_premium ? 1 : 0) - (a.user_premium ? 1 : 0));
     } else if (sortOption.value === "premiumLow") {
-        list.sort(
-            (a, b) => (b.user_premium ? 1 : 0) - (a.user_premium ? 1 : 0),
-        );
+        list.sort((a, b) => (a.user_premium ? 1 : 0) - (b.user_premium ? 1 : 0));
     } else if (sortOption.value === "nameAsc") {
-        const normalizeName = (contact) =>
-            `${contact.first_name || ""} ${contact.last_name || ""}`
-                .trim()
-                .toLowerCase();
-        list.sort((a, b) => normalizeName(a).localeCompare(normalizeName(b)));
+        const name = (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim().toLowerCase();
+        list.sort((a, b) => name(a).localeCompare(name(b)));
     } else if (sortOption.value === "nameDesc") {
-        const normalizeName = (contact) =>
-            `${contact.first_name || ""} ${contact.last_name || ""}`
-                .trim()
-                .toLowerCase();
-        list.sort((a, b) => normalizeName(b).localeCompare(normalizeName(a)));
+        const name = (c) => `${c.first_name || ""} ${c.last_name || ""}`.trim().toLowerCase();
+        list.sort((a, b) => name(b).localeCompare(name(a)));
     }
     return list;
 });
 
-// Computed property for the grid template columns based on columnCount
 const gridColumns = computed(() => {
-    // Ensure columnCount is between 1 and 6
     const count = Math.max(1, Math.min(6, columnCount.value));
     return `repeat(${count}, 1fr)`;
 });
+
+function formatDeadline(val) {
+    if (!val) return "No deadline";
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return val;
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 onMounted(fetchContacts);
 </script>
 
 <template>
-    <section class="team-assign-panel">
-        <h2>Team assignment + project view</h2>
+    <div class="page-wrapper">
+        <!-- Decorative circle -->
+        <div class="bg-circle"></div>
 
-        <div class="controls">
-            <label>
-                Select team:
-                <select v-model="selectedTeam">
-                    <option value="">All teams</option>
-                    <option v-for="team in teams" :key="team" :value="team">
-                        {{ team }}
-                    </option>
-                </select>
-            </label>
+        <div class="panel-content">
+            <!-- Header -->
+            <div class="panel-header">
+                <RouterLink to="/detail/back" class="back-link">← Dashboard</RouterLink>
+                <h1 class="panel-title">Team Assignment</h1>
+                <p class="panel-subtitle">Project view by team</p>
+            </div>
 
-            <label>
-                Sort by:
-                <select v-model="sortOption">
-                    <option value="deadlineAsc">
-                        Deadline (soonest first)
-                    </option>
-                    <option value="deadlineDesc">
-                        Deadline (latest first)
-                    </option>
-                    <option value="premiumHigh">Premium first</option>
-                    <option value="premiumLow">Premium last</option>
-                    <option value="nameAsc">Name A-Z</option>
-                    <option value="nameDesc">Name Z-A</option>
-                </select>
-            </label>
+            <!-- Controls -->
+            <div class="controls-bar">
+                <div class="control-group">
+                    <label class="control-label">Team</label>
+                    <select v-model="selectedTeam" class="control-select">
+                        <option value="">All teams</option>
+                        <option v-for="team in teams" :key="team" :value="team">
+                            {{ team }}
+                        </option>
+                    </select>
+                </div>
 
-            <label>
-                Columns:
-                <input
-                    type="number"
-                    v-model.number="columnCount"
-                    min="1"
-                    max="6"
-                />
-            </label>
-        </div>
+                <div class="control-group">
+                    <label class="control-label">Sort by</label>
+                    <select v-model="sortOption" class="control-select">
+                        <option value="deadlineAsc">Deadline — soonest first</option>
+                        <option value="deadlineDesc">Deadline — latest first</option>
+                        <option value="premiumHigh">Premium first</option>
+                        <option value="premiumLow">Premium last</option>
+                        <option value="nameAsc">Name A → Z</option>
+                        <option value="nameDesc">Name Z → A</option>
+                    </select>
+                </div>
 
-        <div v-if="fetchError" class="error">
-            Error loading contacts: {{ fetchError.message || fetchError }}
-        </div>
-        <div v-else-if="isLoading" class="loading">Loading contacts...</div>
-        <div v-else>
-            <div v-if="sortedContacts.length === 0" class="no-projects">
+                <div class="control-group control-group--narrow">
+                    <label class="control-label">Columns</label>
+                    <input
+                        type="number"
+                        v-model.number="columnCount"
+                        min="1"
+                        max="6"
+                        class="control-select"
+                    />
+                </div>
+            </div>
+
+            <!-- States -->
+            <div v-if="fetchError" class="state-msg state-msg--error">
+                ⚠️ Error loading contacts: {{ fetchError.message || fetchError }}
+            </div>
+            <div v-else-if="isLoading" class="state-msg">
+                Loading projects...
+            </div>
+            <div v-else-if="sortedContacts.length === 0" class="state-msg">
                 No matching projects found.
             </div>
+
+            <!-- Cards grid -->
             <div
-                class="projects-list"
+                v-else
+                class="projects-grid"
                 :style="{ 'grid-template-columns': gridColumns }"
             >
                 <div
@@ -173,171 +178,272 @@ onMounted(fetchContacts);
                     :key="contact.id"
                     class="project-card"
                 >
-                    <h3>{{ contact.company_name || "Unnamed project" }}</h3>
-                    <p><strong>Team:</strong> {{ getAssignedTeam(contact) }}</p>
-                    <p>
-                        <strong>Category:</strong>
-                        {{ contact.category || "N/A" }}
-                    </p>
-                    <p>
-                        <strong>Name:</strong> {{ contact.first_name || "N/A" }}
-                        {{ contact.last_name || "N/A" }}
-                    </p>
-                    <p>
-                        <strong>Deadline:</strong>
-                        {{ contact.deadline_time || "N/A" }}
-                    </p>
+                    <div class="card-top">
+                        <h3 class="card-company">
+                            {{ contact.company_name || "Unnamed project" }}
+                        </h3>
+                        <span v-if="contact.user_premium" class="premium-badge">★ Premium</span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="card-row">
+                            <span class="card-label">Team</span>
+                            <span class="card-value">{{ getAssignedTeam(contact) }}</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">Category</span>
+                            <span class="card-value">{{ contact.category || "N/A" }}</span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">Contact</span>
+                            <span class="card-value">
+                                {{ contact.first_name || "" }} {{ contact.last_name || "N/A" }}
+                            </span>
+                        </div>
+                        <div class="card-row">
+                            <span class="card-label">Deadline</span>
+                            <span class="card-value">{{ formatDeadline(contact.deadline_time) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 </template>
 
 <style scoped>
-.team-assign-panel {
+/* --- Layout --- */
+.page-wrapper {
     min-height: 100vh;
-    background-color: #ffffff;
-    padding: 3rem 1.5rem;
+    background: linear-gradient(135deg, #0fefaa 0%, #11ede2 100%);
+    position: relative;
+    overflow-x: hidden;
+    padding: 4rem 2rem;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Improved H2 styling */
-.team-assign-panel h2 {
-    /* H2: Sora Extra Bold 40pt */
-    font-family: "Sora", sans-serif;
-    font-weight: 800;
-    font-size: 2.5rem; /* 40pt */
-    margin: 0 0 2rem 0;
-    color: #171642;
-    text-align: center;
-    width: 100%;
-}
-
-.controls {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-    width: 100%;
-    max-width: 1200px;
     justify-content: center;
 }
 
-/* Enhanced label styling */
-label {
+.bg-circle {
+    position: fixed;
+    right: -220px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: #ffffff;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.panel-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1400px;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 2.5rem;
+}
+
+/* --- Header --- */
+.panel-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.back-link {
+    font-family: "Red Hat Text", sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #171642;
+    text-decoration: none;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    width: fit-content;
+}
+
+.back-link:hover {
+    opacity: 1;
+}
+
+.panel-title {
+    font-family: "Sora", sans-serif;
+    font-weight: 800;
+    font-size: 3.375rem;
+    color: #171642;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.panel-subtitle {
+    font-family: "Red Hat Text", sans-serif;
+    font-weight: 400;
+    font-size: 1.25rem;
+    color: #171642;
+    opacity: 0.65;
+    margin: 0;
+}
+
+/* --- Controls --- */
+.controls-bar {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
     min-width: 180px;
 }
 
-/* Improved select styling */
-label select,
-label input[type="number"] {
+.control-group--narrow {
+    max-width: 120px;
+    flex: 0 0 auto;
+}
+
+.control-label {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #171642;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.7;
+}
+
+.control-select {
     padding: 0.75rem 1rem;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-family: "Red Hat Text", sans-serif;
     color: #171642;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1.5px solid #cacadd;
-    border-radius: 0.5rem;
-    outline: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-label select:focus,
-label input[type="number"]:focus {
-    border-color: #0fefaa;
-    box-shadow: 0 0 0 3px rgba(15, 250, 170, 0.1);
-    background: rgba(255, 255, 255, 1);
-}
-
-label select:hover,
-label input[type="number"]:hover {
-    border-color: #676789;
-    background: rgba(255, 255, 255, 0.95);
-}
-
-/* Enhanced project card styling */
-.project-card {
-    background: rgba(255, 255, 255, 0.8);
-    border: 1.5px solid #cacadd;
+    background: #ffffff;
+    border: 2px solid transparent;
     border-radius: 0.75rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    outline: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(23, 22, 66, 0.07);
+}
+
+.control-select:focus {
+    border-color: #171642;
+}
+
+/* --- State messages --- */
+.state-msg {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 1.1rem;
+    color: #171642;
+    opacity: 0.7;
+    padding: 2rem 0;
+    text-align: center;
+}
+
+.state-msg--error {
+    opacity: 1;
+    color: #c0392b;
+}
+
+/* --- Cards Grid --- */
+.projects-grid {
+    display: grid;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.project-card {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 4px 20px rgba(23, 22, 66, 0.06);
+    border: 2px solid transparent;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
 }
 
 .project-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0.5rem 1.5rem rgba(15, 250, 170, 0.2);
-    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-4px);
+    border-color: #171642;
+    box-shadow: 0 12px 36px rgba(23, 22, 66, 0.12);
 }
 
-/* Enhanced typography inside cards */
-.project-card h3 {
-    /* H3: Sora Extra Bold 30pt */
+/* Card top row */
+.card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.card-company {
     font-family: "Sora", sans-serif;
     font-weight: 800;
-    font-size: 1.875rem; /* 30pt */
-    margin: 0 0 0.75rem 0;
+    font-size: 1.15rem;
     color: #171642;
+    margin: 0;
+    line-height: 1.3;
 }
 
-.project-card p {
-    /* P1: Red Hat Text Regular 20pt for labels, but we'll use slightly smaller for values */
+.premium-badge {
     font-family: "Red Hat Text", sans-serif;
-    font-weight: 400;
-    font-size: 1rem; /* 16pt for labels, values will be slightly larger */
-    margin: 0.25rem 0;
-    line-height: 1.4;
+    font-weight: 700;
+    font-size: 0.72rem;
+    background: #171642;
+    color: #0fefaa;
+    border-radius: 2rem;
+    padding: 0.25rem 0.65rem;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-/* Make the value text slightly stronger */
-.project-card p strong {
-    font-weight: 600;
+/* Card data rows */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.card-label {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
     color: #171642;
+    opacity: 0.45;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
-/* Projects list grid - responsive to column count */
-.projects-list {
-    display: grid;
-    gap: 1.5rem;
-    width: 100%;
-    max-width: 1500px;
-    /* The grid-template-columns will be set dynamically via inline style */
+.card-value {
+    font-family: "Red Hat Text", sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: #171642;
+    text-align: right;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    .team-assign-panel {
-        padding: 2rem 1rem;
-    }
-
-    .controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    label {
-        min-width: 100%;
-    }
-
-    .projects-list {
-        gap: 1rem;
-    }
-
-    .project-card h3 {
-        font-size: 1.625rem; /* 26pt */
-    }
-
-    .project-card p {
-        font-size: 0.875rem; /* 14pt */
-    }
+/* --- Responsive --- */
+@media (max-width: 900px) {
+    .panel-title { font-size: 2.4rem; }
+    .bg-circle { display: none; }
+    .projects-grid { grid-template-columns: 1fr !important; }
+    .control-group { min-width: 100%; }
+    .control-group--narrow { max-width: 100%; }
 }
 </style>
