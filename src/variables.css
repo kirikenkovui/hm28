@@ -1,0 +1,9 @@
+:root {
+    --white: #ffffff;
+    --navy: #171642;
+    --slate: #676789;
+    --lavender: #cacadd;
+    --mint: #0fefaa;
+    --cyan: #11ede2;
+    --grad: linear-gradient(135deg, #0fefaa 0%, #11ede2 100%);
+}
